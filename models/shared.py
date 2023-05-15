@@ -6,7 +6,6 @@ from configs.model_config import (llm_model_dict, LLM_MODEL)
 
 """迭代器是否停止状态"""
 stop_everything = False
-args = parser.parse_args()
 
 loaderCheckPoint: LoaderCheckPoint = None
 

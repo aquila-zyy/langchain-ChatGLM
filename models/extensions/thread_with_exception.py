@@ -10,18 +10,21 @@ import time
 class ThreadWithException(threading.Thread):
 
     def get_id(self):
-
-        # returns id of the respective thread
-        if hasattr(self, '_thread_id'):
-            return self._thread_id
-        for id, thread in threading._active.items():
-            if thread is self:
-                return id
+        return self.ident
 
     def raise_exception(self):
-        thread_id = self.get_id()
-        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
-                                                         ctypes.py_object(SystemExit))
-        if res > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-            print('Exception raise failure')
+        """raises the exception, performs cleanup if needed"""
+        try:
+            thread_id = self.get_id()
+            tid = ctypes.c_long(thread_id)
+            res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(SystemExit))
+            if res == 0:
+                # pass
+                raise ValueError("invalid thread id")
+            elif res != 1:
+                # """if it returns a number greater than one, you're in trouble,
+                # and you should call it again with exc=NULL to revert the effect"""
+                ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
+                raise SystemError("PyThreadState_SetAsyncExc failed")
+        except Exception as err:
+            print(err)

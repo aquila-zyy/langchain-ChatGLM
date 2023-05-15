@@ -149,6 +149,8 @@ class Stream(transformers.StoppingCriteria):
         self.callback_func = callback_func
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        if shared.stop_everything:
+            raise ValueError
         if self.callback_func is not None:
             self.callback_func(input_ids[0])
         return False
@@ -186,13 +188,10 @@ class Iteratorize:
                 ret = self.mfunc(callback=_callback, **self.kwargs)
             except ValueError:
                 print("print(ValueError)")
-                self.q.put(self.sentinel)
             except:
                 traceback.print_exc()
                 print("traceback.print_exc()")
-                self.q.put(self.sentinel)
             self.q.put(self.sentinel)
-            self.thread.raise_exception()
 
         self.thread = ThreadWithException(target=gen)
         self.thread.start()
@@ -204,8 +203,6 @@ class Iteratorize:
     def __next__(self):
         obj = self.q.get(True, None)
         if obj is self.sentinel:
-            raise StopIteration
-        if shared.stop_everything:
             raise StopIteration
         else:
             return obj
